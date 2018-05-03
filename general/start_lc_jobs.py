@@ -13,7 +13,7 @@ def parseArguments():
     parser.add_argument(
         "--mem",
         help="memory for job",
-        type=int, default=6)
+        type=int, default=2)
     parser.add_argument(
         "--tbin",
         help="Length of time bins for LC in days",
@@ -46,6 +46,10 @@ def parseArguments():
         "--free_pars",
         help="The free parameters of the target source",
         type=str, default=["all"], nargs="+")
+    parser.add_argument(
+        "--data_path",
+        help="Path to the events.txt and spacecraft.fits file",
+        type=str, default="/data/user/tglauch/Fermi_Data/TXS")
     parser.add_argument(
         "--free_radius",
         help="Free sources in a radius of X degrees around the source",
