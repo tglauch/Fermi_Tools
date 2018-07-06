@@ -6,21 +6,35 @@ import os
 import argparse
 import yaml
 import pickle
+import pyfits as fits
+
+def get_time_window(folder):
+    files = os.listdir(folder)
+    files = [f for f in files if 'PH' in f]
+    tmin = []
+    tmax = []
+    for f in files:
+        x = fits.open(os.path.join(folder, f))
+        tmin.append(x[1].header['TSTART'])
+        tmax.append(x[1].header['TSTOP'])
+    return float(np.min(tmin)), float(np.max(tmax))
+
 
 MJDREF = 51910.0 + 7.428703703703703E-4
-
-
 @np.vectorize
 def MJD_to_MET(mjd_time):
-    return (mjd_time - MJDREF) * 86400.
+    return float((mjd_time - MJDREF) * 86400.)
 
+@np.vectorize
+def MET_to_MJD(met_time):
+    return float(met_time/86400.+MJDREF)
 
 def parseArguments():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--trange",
         help="give a time range", nargs="+",
-        type=int, required=True)
+        type=float, required=False)
 
     parser.add_argument(
         "--emin",
@@ -43,6 +57,16 @@ def parseArguments():
         type=str, nargs="+", required=False)
 
     parser.add_argument(
+        "--free_diff",
+        help="Only free the normalization of the target",
+        action='store_true', default=False)
+
+    parser.add_argument(
+        "--free_norm",
+        help="Only free the normalization of the target",
+        action='store_true', default=False)
+
+    parser.add_argument(
         "--src_gamma",
         help="choose a fixed gamma for the target source",
         type=float, required=False)
@@ -51,6 +75,16 @@ def parseArguments():
         "--free_radius",
         help="free sources in a radius of the target source",
         type=float, required=False)
+
+    parser.add_argument(
+        "--data_path",
+        help="Path to the data files",
+        type=str, required=True)
+    
+    parser.add_argument(
+        "--xml_path",
+        help="path to xml files with additional sources for the model",
+        type=str, required=False)
     return parser.parse_args().__dict__
 
 
@@ -60,8 +94,16 @@ print("Running with args \n")
 print(args)
 
 emin = args['emin']
-basepath = './results/{}_{}/{}/'.format(args['trange'][0],
-                                        args['trange'][1],
+if args['trange'] is not None:
+     print('Use Self-Defined Time Window')
+     tmin = MJD_to_MET(args['trange'][0])
+     tmax = MJD_to_MET(args['trange'][1])
+else:
+     print('Use Entire Time Window Available')
+     tmin, tmax =  get_time_window(args['data_path'])
+
+basepath = './results/{:.0f}_{:.0f}/{}/'.format(float(MET_to_MJD(tmin)),
+                                        float(MET_to_MJD(tmax)),
                                         emin)
 if not os.path.exists(basepath):
     os.makedirs(basepath)
@@ -75,10 +117,13 @@ with open('default.yaml', 'r') as stream:
     except yaml.YAMLError as exc:
         print(exc)
 config['selection']['emin'] = args['emin']
-config['selection']['tmin'] = float(MJD_to_MET(args['trange'][0]))
-config['selection']['tmax'] = float(MJD_to_MET(args['trange'][1]))
+config['selection']['tmin'] = tmin
+config['selection']['tmax'] = tmax
 config['selection']['target'] = src
-
+config['data']['evfile'] = os.path.join(args['data_path'], config['data']['evfile'].split('/')[-1]) 
+config['data']['scfile'] = os.path.join(args['data_path'], config['data']['scfile'].split('/')[-1])
+if args['xml_path'] is not None:
+    config['model']['catalogs'].append(args['xml_path'])
 with open(config_path, 'w+') as stream:
     config = yaml.dump(config, stream, default_flow_style=False)
 
@@ -89,21 +134,22 @@ gta = GTAnalysis(os.path.join(basepath, 'config.yaml'),
 gta.setup()
 gta.optimize()
 
-
 #Configure Target Source
 if not args['src_gamma'] is None:
     print('Set Gamma to {}'.format(args['src_gamma']))
     gta.set_parameter(src, "Index", args['src_gamma'])
     free_pars = 'norm'
+elif args['free_norm']:
+    free_pars = 'norm'
 else:
     free_pars = None
-print('Fix the target source: {}'.format(src))
+print('Free the target source: {}'.format(src))
 gta.free_source(src, pars=free_pars, free=True)
 
 # LLH Fit to ROI model
 if not args['free_radius'] is None:
-    print('Free sources in {} deg radius'.format(args['free_radius']))
-    gta.free_sources(distance=args['free_radius'])
+    print('Free sources in {} deg radius (with TS>2)'.format(args['free_radius']))
+    gta.free_sources(distance=args['free_radius'], minmax_ts=[2,None], exclude = ['isodiff', 'galdiff'])
 elif not args['free_sources'] is None:
     for src_key in args['free_sources']:
         print('Free source {} \n'.format(src_key))
@@ -111,9 +157,10 @@ elif not args['free_sources'] is None:
 
 
 # Free all parameters of isotropic and galactic diffuse components
-gta.free_source('galdiff')
-gta.free_source('isodiff')
-
+if args['free_diff']:
+    print('Free Diffuse Components')
+    gta.free_source('galdiff')
+    gta.free_source('isodiff')
 out_dict = gta.fit(retries=args['retries'])
 
 gta.write_roi('llh.npy')

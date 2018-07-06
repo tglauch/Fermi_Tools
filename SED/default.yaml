@@ -1,6 +1,6 @@
 data:
-  evfile : /data/user/tglauch/Fermi_Data/TXS/events.txt
-  scfile : /data/user/tglauch/Fermi_Data/TXS/spacecraft.fits
+  evfile : path_to_data_folder/events.txt
+  scfile : path_to_data_folder/spacecraft.fits
 
 binning:
   roiwidth   : 10.0
