@@ -25,4 +25,4 @@ model:
   src_roiwidth : 15.0
   galdiff  : '$FERMI_DIR/refdata/fermi/galdiffuse/gll_iem_v06.fits'
   isodiff  : '$FERMI_DIR/refdata/fermi/galdiffuse/iso_P8R2_SOURCE_V6_v06.txt'  
-  catalogs : ['3FGL']
+#  catalogs : ['3FGL']
