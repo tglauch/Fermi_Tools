@@ -124,10 +124,10 @@ print(args)
 
 emin = args['emin']
 emax = args['emax']
-if args['trange'] is not None:
+if args['time_range'] is not None:
      print('Use Self-Defined Time Window')
-     tmin = MJD_to_MET(args['trange'][0])
-     tmax = MJD_to_MET(args['trange'][1])
+     tmin = MJD_to_MET(args['time_range'][0])
+     tmax = MJD_to_MET(args['time_range'][1])
 else:
      print('Use Entire Time Window Available')
      tmin, tmax =  get_time_window(args['data_path'])
