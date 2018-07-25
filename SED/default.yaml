@@ -6,7 +6,7 @@ binning:
   roiwidth   : 10.0
   binsz      : 0.1 # spatial bin size in deg
   binsperdec : 10   # nb energy bins per decade
-  projtype   : WCS
+#  projtype   : WCS
 
 selection :
   emin : 100

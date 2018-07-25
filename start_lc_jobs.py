@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding: utf-8
 
 '''
@@ -6,7 +5,6 @@ Example Run:
 python start_lc_jobs.py --tbin 55 --bpath 5BZB_J0211+1051 --emin 200 --time_range 54716 58156 --target_src 3FGL_J0211.2+1051 --srcmdl 5BZB_J0211+1051_logP.xml --data_path /data/user/tglauch/Fermi_Data/5BZB_J0211+1051/ --free_radius 3
 '''
 
-import numpy as np
 import time
 import os
 import argparse
@@ -14,6 +12,12 @@ import sys
 from configobj import ConfigObj
 from os.path import exists, join
 
+
+def drange(start, stop, step):
+    r = start
+    while r < stop:
+        yield r
+        r += step
 
 def parseArguments():
     parser = argparse.ArgumentParser()
@@ -44,9 +48,11 @@ def parseArguments():
 args, unkwn = parseArguments()
 if args['tbin'] == -1:
     args['tbin'] = args['time_range'][1] - args['time_range'][0]
-time_bins = np.arange(args['time_range'][0],
+i0 = drange(args['time_range'][0],
                       args['time_range'][1],
                       args['tbin'])
+time_bins = [x for x in i0]
+print time_bins
 executable = args['executable']
 tm = time.localtime(time.time())
 t_str='{}-{}-{}-{}-{}-{}'.format(tm.tm_year, tm.tm_mon, tm.tm_mday,

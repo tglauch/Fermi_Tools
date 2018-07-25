@@ -1,6 +1,5 @@
 # coding: utf-8
 
-
 from fermipy.gtanalysis import GTAnalysis
 import numpy as np
 import os
@@ -49,7 +48,7 @@ def MET_to_MJD(met_time):
 def parseArguments():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--trange",
+        "--time_range",
         help="give a time range", nargs="+",
         type=float, required=False)
 
@@ -166,8 +165,7 @@ with open(config_path, 'w+') as stream:
 
 
 # Run Analysis
-gta = GTAnalysis(os.path.join(basepath, 'config.yaml'),
-                 logging={'verbosity': 3})
+gta = GTAnalysis(os.path.join(basepath, 'config.yaml'), logging={'verbosity': 3})
 gta.setup()
 
 
