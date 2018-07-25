@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
+
+'''
+Example Run:
+python start_lc_jobs.py --tbin 55 --bpath 5BZB_J0211+1051 --emin 200 --time_range 54716 58156 --target_src 3FGL_J0211.2+1051 --srcmdl 5BZB_J0211+1051_logP.xml --data_path /data/user/tglauch/Fermi_Data/5BZB_J0211+1051/ --free_radius 3
+'''
+
 import numpy as np
+import time
 import os
 import argparse
 import sys
@@ -19,80 +26,45 @@ def parseArguments():
         help="Length of time bins for LC in days",
         type=int, default=-1)
     parser.add_argument(
-        "--bpath",
-        help="basepath for data, config files and saving",
-        type=str, required=True)
-    parser.add_argument(
-        "--emin",
-        help="The minimum energy for the analysis",
-        type=float, default=-1)
-    parser.add_argument(
         "--time_range",
-        help="The minimum energy for the analysis",
+        help="The time range for the lightcurve",
         type=float, required=True, nargs="+")
-    parser.add_argument(
-        "--target_src",
-        help="The target source",
-        type=str, required=True)
-    parser.add_argument(
-        "--srcmdl",
-        help="Name of the source model file",
-        type=str, default="model.xml")
-    parser.add_argument(
-        "--photon_prob",
-        help="Probability of photons belonging to a source",
-        action='store_false')
-    parser.add_argument(
-        "--free_pars",
-        help="The free parameters of the target source",
-        type=str, default=["all"], nargs="+")
-    parser.add_argument(
-        "--data_path",
-        help="Path to the events.txt and spacecraft.fits file",
-        type=str, default="/data/user/tglauch/Fermi_Data/TXS")
-    parser.add_argument(
-        "--free_radius",
-        help="Free sources in a radius of X degrees around the source",
-        type=float, default=-1)
     parser.add_argument(
         "--group",
         help="Name of accounting group",
         type=str, default="None")
-    return parser.parse_args().__dict__
+    parser.add_argument(
+        "--executable",
+        help="Choose and Executable File",
+        required=True, type=str)
+    args, unknown = parser.parse_known_args()
+    return args.__dict__, unknown 
 
 
-args = parseArguments()
+args, unkwn = parseArguments()
 if args['tbin'] == -1:
     args['tbin'] = args['time_range'][1] - args['time_range'][0]
 time_bins = np.arange(args['time_range'][0],
                       args['time_range'][1],
                       args['tbin'])
-executable = './env.sh'
-log_str = 'job'
+executable = args['executable']
+tm = time.localtime(time.time())
+t_str='{}-{}-{}-{}-{}-{}'.format(tm.tm_year, tm.tm_mon, tm.tm_mday,
+                                 tm.tm_hour, tm.tm_min, tm.tm_sec)
+out_folder = join('./', 'condor' , t_str)
+if not os.path.exists(out_folder):
+    print('Create a Directory in {}'.format(out_folder))
+    os.makedirs(out_folder)
+ 
 for i in range(len(time_bins)):
+    sub_args = ' '.join(unkwn)
     tmin = time_bins[i]
     if (i + 1) < len(time_bins):
         tmax = time_bins[i + 1]
     else:
         tmax = args['time_range'][1]
     print('Time Range: {} - {}'.format(tmin, tmax))
-    out_folder = join('./', 'results', args['bpath'],
-                      '{}_{}'.format(tmin, tmax), str(int(args['emin'])))
-    if not os.path.exists(out_folder):
-        print('Create a Directory in {}'.format(out_folder))
-        os.makedirs(out_folder)
-    sub_args = ""
-    for key in args.keys():
-        if key == 'mem' or key == 'time_range' or key == 'tbin' or key == 'group':
-            continue
-        elif key == 'photon_prob':
-            if args['photon_prob']:
-                sub_args += ' --photon_prob '
-        elif key == "free_pars":
-                sub_args += ' --free_pars {} '.format(" ".join(args['free_pars'])) 
-
-        else:
-            sub_args += " --{} {}".format(key, args[key])
+    log_str = 'job_{}_{}'.format(tmin, tmax)
     sub_args += " --time_range {} {} ".format(tmin, tmax)
 
     print('submit args: \n {}'.format(sub_args))

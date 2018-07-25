@@ -1,5 +1,6 @@
 # coding: utf-8
 
+
 from fermipy.gtanalysis import GTAnalysis
 import numpy as np
 import os
@@ -72,12 +73,12 @@ def parseArguments():
 
     parser.add_argument(
         "--free_sources",
-        help="define which sources to fit",
+        help="Define which sources are free for the fit",
         type=str, nargs="+", required=False)
 
     parser.add_argument(
         "--free_diff",
-        help="Only free the normalization of the target",
+        help="Free the isotropic and galactic diffuse component",
         action='store_true', default=False)
 
     parser.add_argument(
