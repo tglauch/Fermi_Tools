@@ -28,7 +28,7 @@ def parseArguments():
     parser.add_argument(
         "--tbin",
         help="Length of time bins for LC in days",
-        type=int, default=-1)
+        type=float, default=-1)
     parser.add_argument(
         "--time_range",
         help="The time range for the lightcurve",

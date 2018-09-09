@@ -59,7 +59,7 @@ def parseArguments():
     parser.add_argument(
         "--emax",
         help="The minimum energy for the analysis",
-        type=float, default=100000)
+        type=float, default=800000)
     parser.add_argument(
         "--target_src",
         help="The target source for the analysis",
@@ -119,6 +119,7 @@ def parseArguments():
 
 args = parseArguments()
 src = args['target_src'].replace('_', ' ')
+this_path = os.path.dirname(os.path.abspath(__file__))
 print("Running with args \n")
 print(args)
 
@@ -136,6 +137,7 @@ basepath = './results/{}/{:.0f}_{:.0f}/{}_{}/'.format(args['target_src'],
                                         float(MET_to_MJD(tmin)),
                                         float(MET_to_MJD(tmax)),
                                         int(emin), int(emax))
+basepath = os.path.join(this_path, basepath)
 setup_data_files(args['data_path'])
 if not os.path.exists(basepath):
     os.makedirs(basepath)
@@ -143,7 +145,7 @@ if not os.path.exists(basepath):
 # Create Config File
 config_path = os.path.join(basepath, 'config.yaml')
 
-with open('default.yaml', 'r') as stream:
+with open(os.path.join(this_path,'default.yaml'), 'r') as stream:
     try:
         config = yaml.load(stream)
     except yaml.YAMLError as exc:
@@ -198,16 +200,16 @@ if args['free_diff']:
     gta.free_source('galdiff', pars='norm')
     gta.free_source('isodiff', pars='norm')
 gta.fit(retries=args['retries'])
-gta.write_roi('llh_emin_{}_emax_{}.npy'.format(emin, emax))
+gta.write_roi('llh_emin_{}_emax_{}.npy'.format(int(emin), int(emax)))
 
 print('Calculate Bowtie for {}'.format(src))
 out_dict = gta.bowtie(src)
-np.save(os.path.join(basepath, 'bowtie_emin_{}_emax_{}.npy'.format(emin, emax)), out_dict)
+np.save(os.path.join(basepath, 'bowtie_emin_{}_emax_{}.npy'.format(int(emin), int(emax))), out_dict)
 print('Start SED Fitting')
 print('Free the target source: {} with pars: {}'.format(src, free_pars))
 
 if not  args['no_sed']:
-    sed = gta.sed(src, outfile='sed_emin_{}_emax_{}.fits'.format(emin, emax),
+    sed = gta.sed(src, outfile='sed_emin_{}_emax_{}.fits'.format(int(emin), int(emax)),
                   loge_bins=list(np.arange(np.log10(emin), np.log10(emax), 0.5)),
 	          free_pars=free_pars,
                   free_radius = args['free_radius']) #bin_index = index
