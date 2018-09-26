@@ -13,10 +13,11 @@ import wget
 
 def get_dl_links(html):
     split = html.split('wget')
-    print len(split)
-    if len(split) > 3:
+    status = int(html.split('he state of your query is ')[1][:1])
+    print status
+    if status == 2:
         return [i.strip().replace('\n', '')
-                for i in split[2:-1]]
+                for i in split[1:-1]]
     else:
         return []
 
