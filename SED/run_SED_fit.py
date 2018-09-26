@@ -5,7 +5,6 @@ import numpy as np
 import os
 import argparse
 import yaml
-import pickle
 import pyfits as fits
 
 
@@ -56,7 +55,6 @@ def parseArguments():
         "--time_range",
         help="give a time range", nargs="+",
         type=float, required=False)
-
     parser.add_argument(
         "--emin",
         help="The minimum energy for the analysis",
@@ -69,52 +67,42 @@ def parseArguments():
         "--target_src",
         help="The target source for the analysis",
         type=str, default='3FGL_J0509.4+0541')
-
     parser.add_argument(
         "--retries",
         help="Number of retries if fit does not converge",
         type=int, default=20)
-
     parser.add_argument(
         "--free_sources",
         help="Define which sources are free for the fit",
         type=str, nargs="+", required=False)
-
     parser.add_argument(
         "--free_diff",
         help="Free the isotropic and galactic diffuse component",
         action='store_true', default=False)
-
     parser.add_argument(
         "--use_3FGL",
         help="Decide of whether or not to use 3FGL sources",
         action='store_true', default=False)
-
     parser.add_argument(
         "--free_norm",
         help="Only free the normalization of the target",
         action='store_true', default=False)
-
     parser.add_argument(
         "--no_sed",
         help="Only run llh and bowtie, no sed points",
         action='store_true', default=False)
-
     parser.add_argument(
         "--src_gamma",
         help="choose a fixed gamma for the target source",
         type=float, required=False)
-
     parser.add_argument(
         "--free_radius",
         help="free sources in a radius of the target source",
         type=float, required=False)
-
     parser.add_argument(
         "--data_path",
         help="Path to the data files",
         type=str, required=True)
-
     parser.add_argument(
         "--xml_path",
         help="path to xml files with additional sources for the model",
@@ -122,7 +110,7 @@ def parseArguments():
     return parser.parse_args().__dict__
 
 
-def run_fit(args):
+def run_fit(args, add_srcs=dict()):
     src = args['target_src'].replace('_', ' ')
     this_path = os.path.dirname(os.path.abspath(__file__))
     print("Running with args \n")
@@ -176,6 +164,8 @@ def run_fit(args):
     # Run Analysis
     gta = GTAnalysis(os.path.join(basepath, 'config.yaml'),
                      logging={'verbosity': 3})
+    for src_key in add_srcs:
+        gta.add_source(src_key, add_srcs[src_key])
     gta.setup()
 
 
@@ -223,13 +213,11 @@ def run_fit(args):
 
     if not args['no_sed']:
         ofile = 'sed_emin_{}_emax_{}.fits'.format(int(emin), int(emax))
-        sed = gta.sed(src,
-                      outfile=ofile,
-                      loge_bins=list(np.arange(np.log10(emin),
-                                     np.log10(emax), 0.5)),
-                      free_pars=free_pars,
-                      free_radius=args['free_radius'])  # bin_index = index
-    #pickle.dump()
+        gta.sed(src, outfile=ofile,
+                loge_bins=list(np.arange(np.log10(emin),
+                               np.log10(emax), 0.5)),
+                free_pars=free_pars,
+                free_radius=args['free_radius'])  # bin_index = index
 
 
 if __name__ == '__main__':
