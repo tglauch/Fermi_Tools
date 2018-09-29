@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 # coding: utf-8
 
 import requests
@@ -7,17 +6,16 @@ import argparse
 import time
 import os
 import wget
-
+import shutil
 # Settings
 
 
 def get_dl_links(html):
     split = html.split('wget')
     status = int(html.split('he state of your query is ')[1][:1])
-    print status
     if status == 2:
-        return [i.strip().replace('\n', '')
-                for i in split[1:-1]]
+        return [(i.split('</pre>'))[0].strip().replace('\n', '')
+                for i in split[2:]]
     else:
         return []
 
@@ -74,12 +72,14 @@ def get_data(ra, dec, emin=100, emax=800000, dt=-1,  out_dir=''):
     while len(dl_urls) == 0:
         print('Query not finished...Wait 10 more seconds')
         time.sleep(10)
+        html = requests.get(query_url).text.encode('utf8')
         dl_urls = get_dl_links(html)
 
     print('Downloading the following list of files:')
     print dl_urls
     #print('\n'.join(dl_urls))
-
+    if os.path.exists(out_dir):
+        shutil.rmtree(out_dir)
     os.makedirs(out_dir)
     for url in dl_urls:
         wget.download(url, out=out_dir)

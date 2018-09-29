@@ -107,12 +107,15 @@ def parseArguments():
         "--xml_path",
         help="path to xml files with additional sources for the model",
         type=str, required=False)
+    parser.add_argument(
+         "--outfolder",
+         help="where to save the output files?",
+         type=str, required=False)
     return parser.parse_args().__dict__
 
 
-def run_fit(args, add_srcs=dict()):
+def run_fit(args):
     src = args['target_src'].replace('_', ' ')
-    this_path = os.path.dirname(os.path.abspath(__file__))
     print("Running with args \n")
     print(args)
 
@@ -125,13 +128,16 @@ def run_fit(args, add_srcs=dict()):
     else:
         print('Use Entire Time Window Available')
         tmin, tmax = get_time_window(args['data_path'])
-
-    basepath = './results/{}/{:.0f}_{:.0f}/{}_{}/'.format(
-               args['target_src'],
-               float(MET_to_MJD(tmin)),
-               float(MET_to_MJD(tmax)),
-               int(emin), int(emax))
-    basepath = os.path.join(this_path, basepath)
+    this_path = os.path.dirname(os.path.abspath(__file__))
+    if args['outfolder'] is not None:
+        basepath = args['outfolder']
+    else:
+        basepath = '{:.0f}_{:.0f}/{}_{}/'.format(
+                   args['target_src'],
+                   float(MET_to_MJD(tmin)),
+                   float(MET_to_MJD(tmax)),
+                   int(emin), int(emax))
+        basepath = os.path.join(this_path, basepath)
     setup_data_files(args['data_path'])
     if not os.path.exists(basepath):
         os.makedirs(basepath)
@@ -155,7 +161,7 @@ def run_fit(args, add_srcs=dict()):
                                             config['data']['scfile'].split('/')[-1])
     config['model']['catalogs'] = []
     if args['xml_path'] is not None:
-        config['model']['catalogs'].append(args['xml_path'])
+        config['model']['catalogs'].append('{}'.format(args['xml_path']))
     if args['use_3FGL']:
         config['model']['catalogs'].append('3FGL')
     with open(config_path, 'w+') as stream:
@@ -164,8 +170,6 @@ def run_fit(args, add_srcs=dict()):
     # Run Analysis
     gta = GTAnalysis(os.path.join(basepath, 'config.yaml'),
                      logging={'verbosity': 3})
-    for src_key in add_srcs:
-        gta.add_source(src_key, add_srcs[src_key])
     gta.setup()
 
 
