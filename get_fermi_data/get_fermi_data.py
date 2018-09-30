@@ -37,7 +37,7 @@ def parseArguments():
     args = parser.parse_args()
     return args.__dict__
 
-def get_data(ra, dec, emin=100, emax=800000, dt=-1,  out_dir=''):
+def get_data(ra, dec, emin=100, emax=800000, dt=-1, out_dir=''):
     if out_dir == '':
         out_dir = './ra_{}_dec_{}'.format(ra, dec)
     url = "https://fermi.gsfc.nasa.gov/cgi-bin/ssc/LAT/LATDataQuery.cgi"
@@ -83,6 +83,7 @@ def get_data(ra, dec, emin=100, emax=800000, dt=-1,  out_dir=''):
     os.makedirs(out_dir)
     for url in dl_urls:
         wget.download(url, out=out_dir)
+    return MET
 
 
 if __name__ == '__main__':
