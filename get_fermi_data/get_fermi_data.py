@@ -7,6 +7,7 @@ import time
 import os
 import wget
 import shutil
+from myfunctions import MJD_to_MET
 # Settings
 
 
@@ -19,6 +20,20 @@ def get_dl_links(html):
     else:
         return []
 
+def setup_data_files(folder):
+    files = os.listdir(folder)
+    if 'events.txt' not in files:
+        ph_files = [os.path.join(folder, f) for f in files if 'PH' in f]
+        with open(os.path.join(folder, 'events.txt'), 'w+') as ofile:
+            ofile.write("\n".join(ph_files))
+    if 'spacecraft.fits' not in files:
+        sc_files = [f for f in files if 'SC' in f]
+        if len(sc_files) == 1:
+            os.rename(os.path.join(folder, sc_files[0]),
+                      os.path.join(folder, 'spacecraft.fits'))
+        else:
+            raise Exception('No Spacecraft File Available!')
+    return
 
 def parseArguments():
     """Parse the command line arguments
@@ -37,15 +52,34 @@ def parseArguments():
     args = parser.parse_args()
     return args.__dict__
 
-def get_data(ra, dec, emin=100, emax=800000, dt=-1, out_dir=''):
-    if out_dir == '':
+def get_data(ra, dec, **kwargs):
+    if kwargs.get('out_dir') is None:
         out_dir = './ra_{}_dec_{}'.format(ra, dec)
+    else:
+        out_dir = kwargs.get('out_dir')
     url = "https://fermi.gsfc.nasa.gov/cgi-bin/ssc/LAT/LATDataQuery.cgi"
     html = requests.get(url).text.encode('utf8')
     MET = [i.strip() for i in html.split('(MET)')[1][:24].split('to')]
     print MET
-    if dt != -1:
-        MET[0] = str(float(MET[1]) - dt * 24 * 60 * 60)
+    mjd_range = kwargs.get('mjd')
+    if isinstance(mjd_range, float):
+        days = kwargs.get('days')
+        mode = kwargs.get('mode', 'end')
+
+        if days is not None:
+            if not MJD_to_MET(mjd_range)>float(MET[1]):
+                MET[1] = str(MJD_to_MET(mjd_range))
+            if mode == 'mid':
+                MET[0] = str(float(MET[1]) - kwargs['days']/2. * 24 * 60 * 60)
+                MET[1] = str(float(MET[1]) + kwargs['days']/2. * 24 * 60 * 60)
+            elif mode == 'end':
+                MET[0] = str(float(MET[1]) - kwargs['days'] * 24 * 60 * 60)
+            else:
+                raise ValueError('mode for mjd range must be mid or end, but {} was given'.format(mode))
+    if isinstance(mjd_range, list):
+        MET[0] = str(MJD_to_MET(mjd_range[0]))
+        MET[1] = str(MJD_to_MET(mjd_range[1]))
+    print MET
     br = Browser()
     br.set_handle_robots(False)
     br.open(url)
@@ -55,10 +89,10 @@ def get_data(ra, dec, emin=100, emax=800000, dt=-1, out_dir=''):
     br['coordsystem'] = [u'J2000']
     br['timetype'] = [u'MET']
     br['timefield'] = ', '.join(MET)
-    br['shapefield'] = '15'
-    br['energyfield'] = '{}, {}'.format(emin, emax)
+    br['shapefield'] = '8'
+    br['energyfield'] = '{}, {}'.format(kwargs.get('emin', 100),
+                                        kwargs.get('emax', 800000))
     response = br.submit()
-
     r_text = response.get_data()
     query_url = r_text.split('at <a href="')[1].split('"')[0]
     print('Query URL {}'.format(query_url))
@@ -77,12 +111,12 @@ def get_data(ra, dec, emin=100, emax=800000, dt=-1, out_dir=''):
 
     print('Downloading the following list of files:')
     print dl_urls
-    #print('\n'.join(dl_urls))
     if os.path.exists(out_dir):
         shutil.rmtree(out_dir)
     os.makedirs(out_dir)
     for url in dl_urls:
         wget.download(url, out=out_dir)
+    setup_data_files(out_dir)
     return MET
 
 
