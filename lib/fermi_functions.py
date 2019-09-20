@@ -47,8 +47,8 @@ def setup_gta(args):
     emax = args['emax']
     if args['time_range'] is not None:
         print('Use Self-Defined Time Window')
-        tmin = MJD_to_MET(args['time_range'][0])
-        tmax = MJD_to_MET(args['time_range'][1])
+        tmin = float(MJD_to_MET(args['time_range'][0]))
+        tmax = float(MJD_to_MET(args['time_range'][1]))
     else:
         print('Use Entire Time Window Available')
         tmin, tmax = get_time_window(args['data_path'])
@@ -78,6 +78,8 @@ def setup_gta(args):
     config['selection']['emax'] = emax
     config['selection']['tmin'] = tmin
     config['selection']['tmax'] = tmax
+    if args['roiwidth'] is not None:
+       config['binning']['roiwidth'] = args['roiwidth'] 
     if src != '':
         config['selection']['target'] = src
     elif ('ra' in args) and ('dec' in args):
@@ -100,6 +102,8 @@ def setup_gta(args):
     gta = GTAnalysis(os.path.join(basepath, 'config.yaml'),
                      logging={'verbosity': 3})
     gta.setup()
+    gta.print_params(True)
+    gta.optimize()
     #  Free all parameters of isotropic and galactic diffuse components
     if args['free_diff']:
         print('Free Diffuse Components')
@@ -131,8 +135,7 @@ def setup_gta(args):
     print('Free the target source: {} with pars: {}'.format(src, free_pars))
     gta.free_source(src, pars=None, free=False)
     gta.free_source(src, pars=free_pars, free=True)
-    gta.optimize()
-
+    gta.print_params(True)
     return gta, basepath, src, free_pars
 
 def parseArguments():
@@ -208,5 +211,9 @@ def parseArguments():
     parser.add_argument(
         "--dec",
         help="dec",
+        type=float)
+    parser.add_argument(
+        "--roiwidth",
+        help="size of the roi",
         type=float)
     return parser.parse_args().__dict__

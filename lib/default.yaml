@@ -24,5 +24,9 @@ gtlike:
 model:
   src_radius : 6.0
   galdiff  : '$FERMI_DIR/refdata/fermi/galdiffuse/gll_iem_v06.fits'
-  isodiff  : '$FERMI_DIR/refdata/fermi/galdiffuse/iso_P8R2_SOURCE_V6_v06.txt'  
-#  catalogs : ['3FGL']
+  isodiff  : '$FERMI_DIR/refdata/fermi/galdiffuse/iso_P8R2_SOURCE_V6_v06.txt' 
+
+optimizer:
+  min_fit_quality: 3
+  retries : 5
+ 

@@ -8,6 +8,7 @@ import os
 import wget
 import shutil
 from myfunctions import MJD_to_MET
+from astropy.io import fits
 # Settings
 
 
@@ -20,19 +21,22 @@ def get_dl_links(html):
     else:
         return []
 
-def setup_data_files(folder):
+def setup_data_files(folder, sc_file=None):
     files = os.listdir(folder)
     if 'events.txt' not in files:
         ph_files = [os.path.join(folder, f) for f in files if 'PH' in f]
         with open(os.path.join(folder, 'events.txt'), 'w+') as ofile:
             ofile.write("\n".join(ph_files))
-    if 'spacecraft.fits' not in files:
-        sc_files = [f for f in files if 'SC' in f]
-        if len(sc_files) == 1:
-            os.rename(os.path.join(folder, sc_files[0]),
-                      os.path.join(folder, 'spacecraft.fits'))
-        else:
-            raise Exception('No Spacecraft File Available!')
+    if sc_file is not None:
+        os.symlink(sc_file, os.path.join(folder, 'spacecraft.fits'))
+    else:
+        if 'spacecraft.fits' not in files:
+            sc_files = [f for f in files if 'SC' in f]
+            if len(sc_files) == 1:
+                os.rename(os.path.join(folder, sc_files[0]),
+                          os.path.join(folder, 'spacecraft.fits'))
+            else:
+                raise Exception('No Spacecraft File Available!')
     return
 
 def parseArguments():
@@ -52,15 +56,19 @@ def parseArguments():
     args = parser.parse_args()
     return args.__dict__
 
-def get_data(ra, dec, **kwargs):
+def get_data(ra, dec, sc_file=None, **kwargs):
     if kwargs.get('out_dir') is None:
         out_dir = './ra_{}_dec_{}'.format(ra, dec)
     else:
         out_dir = kwargs.get('out_dir')
     url = "https://fermi.gsfc.nasa.gov/cgi-bin/ssc/LAT/LATDataQuery.cgi"
-    html = requests.get(url).text.encode('utf8')
-    MET = [i.strip() for i in html.split('(MET)')[1][:24].split('to')]
-    print MET
+    if sc_file is None:
+        html = requests.get(url).text.encode('utf8')
+        MET = [i.strip() for i in html.split('(MET)')[1][:24].split('to')]
+    else:
+        print('Use SC file from {}'.format(sc_file))
+        new_file = fits.open(sc_file)
+        MET = [str(new_file[1].header['TSTART']), str(new_file[1].header['TSTOP'])]
     mjd_range = kwargs.get('mjd')
     if isinstance(mjd_range, float):
         days = kwargs.get('days')
@@ -92,6 +100,8 @@ def get_data(ra, dec, **kwargs):
     br['shapefield'] = '8'
     br['energyfield'] = '{}, {}'.format(kwargs.get('emin', 100),
                                         kwargs.get('emax', 800000))
+    if sc_file is not None:
+        br.form.find_control('spacecraft').items[0].selected = False 
     response = br.submit()
     r_text = response.get_data()
     query_url = r_text.split('at <a href="')[1].split('"')[0]
@@ -104,7 +114,7 @@ def get_data(ra, dec, **kwargs):
     html = requests.get(query_url).text.encode('utf8')
     dl_urls = get_dl_links(html)
     while len(dl_urls) == 0:
-        print('Query not finished...Wait 10 more seconds')
+        print('Query not yet finished...Wait 10 more seconds')
         time.sleep(10)
         html = requests.get(query_url).text.encode('utf8')
         dl_urls = get_dl_links(html)
@@ -116,7 +126,7 @@ def get_data(ra, dec, **kwargs):
     os.makedirs(out_dir)
     for url in dl_urls:
         wget.download(url, out=out_dir)
-    setup_data_files(out_dir)
+    setup_data_files(out_dir, sc_file=sc_file)
     return MET
 
 
