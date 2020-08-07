@@ -10,6 +10,8 @@ import pyfits as fits
 from myfunctions import MET_to_MJD, MJD_to_MET
 import argparse
 
+
+latest_4fgl_cat = '/home/ga53lag/Software/Realtime_Dissection/lib/gll_psc_v23.fit' 
 def setup_data_files(folder):
     files = os.listdir(folder)
     if 'events.txt' not in files:
@@ -95,7 +97,8 @@ def setup_gta(args):
     if args['use_3FGL']:
         config['model']['catalogs'].append('3FGL')
     if args['use_4FGL']:
-        config['model']['catalogs'].append('4FGL')
+        #config['model']['catalogs'].append('4FGL')
+        config['model']['catalogs'].append(latest_4fgl_cat)
     with open(config_path, 'w+') as stream:
         config = yaml.dump(config, stream, default_flow_style=False)
     # Run Analysis

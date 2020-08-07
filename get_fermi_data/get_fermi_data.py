@@ -97,7 +97,7 @@ def get_data(ra, dec, sc_file=None, **kwargs):
     br['coordsystem'] = [u'J2000']
     br['timetype'] = [u'MET']
     br['timefield'] = ', '.join(MET)
-    br['shapefield'] = '8'
+    br['shapefield'] = '15'
     br['energyfield'] = '{}, {}'.format(kwargs.get('emin', 100),
                                         kwargs.get('emax', 800000))
     if sc_file is not None:
