@@ -9,8 +9,22 @@ import wget
 import shutil
 from myfunctions import MJD_to_MET
 from astropy.io import fits
+import glob
 # Settings
 
+
+def download_file(url, outfolder):
+    local_filename = os.path.join(outfolder, url.split('/')[-1])
+    # NOTE the stream=True parameter below
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(local_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192): 
+                # If you have chunk encoded response uncomment if
+                # and set chunk_size parameter to None.
+                #if chunk: 
+                f.write(chunk)
+    return
 
 def get_dl_links(html):
     split = html.split('wget')
@@ -119,13 +133,17 @@ def get_data(ra, dec, sc_file=None, **kwargs):
         html = requests.get(query_url).text.encode('utf8')
         dl_urls = get_dl_links(html)
 
-    print('Downloading the following list of files:')
-    print dl_urls
+    print('Downloading the following list of files: \n {} \n to {}'.format(dl_urls, out_dir))
     if os.path.exists(out_dir):
-        shutil.rmtree(out_dir)
-    os.makedirs(out_dir)
+        files = glob.glob(os.path.join(out_dir, '*'))
+        for f in files:
+            print('Remove {}'.format(f))
+            os.remove(f)
+    else:
+        os.makedirs(out_dir)
     for url in dl_urls:
-        wget.download(url, out=out_dir)
+        download_file(url, out_dir)
+        #wget.download(url, out=out_dir)
     setup_data_files(out_dir, sc_file=sc_file)
     return MET
 
